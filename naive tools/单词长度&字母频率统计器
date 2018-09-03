@@ -1,0 +1,43 @@
+#include<stdio.h>
+#include<string.h>
+#define test
+int main(){
+	int i,c,num = 0,nsum =0 ;
+	int arr[100],brr[27];//int 数组不能用strlen求，只能求字符串 
+	memset(arr,0,sizeof(arr));
+	memset(brr,0,sizeof(brr));
+	while((c = getchar()) != EOF){
+		++nsum;
+		if(c >= 'a' && c <= 'z'){
+			num++;
+		}else{
+			++arr[num];
+			num = 0;
+		}
+		if(c >= 'a' && c <= 'z'){
+			brr[c-'a']++;
+		}else if(c >= 'A' && c <= 'Z'){
+			brr[c-'A']++;
+		}
+	}
+	printf("the total number of words is %d\n",nsum);
+	for(int i=1;i<=15;i++){
+		if(arr[i]){
+			printf("word length:%d\t",i);
+			for(int j=1;j<=arr[i];j++){
+				printf("*");
+			}
+			printf("\n");
+		}
+	}
+	for(int i=0;i<=25;i++){
+		if(brr[i]){
+				printf("the total number of letter %c:",65+i);
+		for(int j=1;j<=brr[i];j++){
+			printf("*");
+		}
+		printf("\n");
+		}
+	}
+	return 0;
+}
