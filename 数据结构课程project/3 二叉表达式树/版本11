@@ -1,0 +1,540 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<ctype.h>//isdigit  isalpha
+#define MAXN 20//接收字符最多数量 
+
+typedef struct treenode *Tree;
+typedef struct treenode *Node;
+typedef struct treenode *ptr;
+
+typedef struct treenode{
+	char data;
+	ptr left;
+	ptr right;
+	int flag;//判断该节点是否有被操作数插满 
+};
+
+struct stackrecord;
+typedef struct stackrecord *Stack;
+
+struct stackrecord{
+	int arr[MAXN];//栈要计算内容的，内容必须是数字 
+	int topidx;
+};
+
+//表达式树功能 
+int ReadExpr(Tree);//输入前缀表达式 
+void WriteExpr(Tree);//输出中缀表达式
+void Assign(char,char,Tree);//实现对变量V的赋值 v = c
+int Value(char*,Stack,Tree,int);//对表达式求值 即输出表达式化简过的那种
+void CompoundExpr(char,Tree,Tree);//构成新表达式 (E1)P(E2)  增加一个新节点两个表达式树 
+
+Tree CreateTree(void);//创造树 
+void InsertNode(Tree,char);//插入节点
+void PreOrder(Tree);//先序遍历
+void MidOrder(Tree);//中序遍历 
+void BackOrder(Tree);//后序遍历 同时返回字符数量 
+//void 
+
+void Load(Tree,char*);//将操作符导入数组 
+int n = 0;
+int issym(char);//是操作符 
+int isoper(char);//是操作数 
+
+//栈的实现函数
+Stack CreateStack(int);//创建列表
+void Push(char,Stack);
+void Pop(Stack);
+int Top(Stack);
+int IsEmpty(Stack); 
+
+//化简代码 
+
+// +*5^x2*8x
+// +*5^32*84
+// +*3^*3^x2x6
+// +*3^*3^1246
+int main()//ui 用switch搞 
+{
+	printf("\n\t\t\t欢迎使用表达式树!!!\n\n\n");
+	printf("\t\t\t输入1创建表达式\n");
+	printf("\t\t\t输入2输出当前表达式\n"); 
+	printf("\t\t\t输入3给表达式赋值\n");
+	printf("\t\t\t输入4对表达式求值\n");
+	printf("\t\t\t输入5表达式合并\n"); 
+	printf("\t\t\t输入@退出\n\n");
+	
+	
+	int num,flag = 0;
+	char arr[MAXN],brr[MAXN],crr[MAXN];
+	char c1,c2,c;
+	int sum,sum1,sum2;
+	
+	Stack S = CreateStack(MAXN);
+	Tree tree = CreateTree();
+	//创建栈
+	
+	while((c = getchar()) != '@')
+	{
+		switch(c){
+			case '1':
+				printf("\t\t\t请输入前缀表达式:\n\n");
+				num = ReadExpr(tree);//num是操作符数量
+				printf("\n\n\t操作符数量 : %d \n\n",num); 
+				Load(tree,arr);//导入操作符到数组 
+				printf("\n\t\t\t请继续输入，输入@或6退出\n");
+				break;
+			case '2':
+				printf("\npre order\n");
+				PreOrder(tree);
+				printf("\nmid order\n");
+				MidOrder(tree);
+				printf("\nbac order\n");
+				BackOrder(tree);//把后缀表达式存入数组 数组中一共num个字符
+				printf("\n\t\t\t请继续输入，输入@或6退出\n");
+				break;
+			case '3':
+				printf("\n\n\t请输入 待替换的字符 和 新字符\n");
+				scanf("%c %c",&c1,&c2);
+				Assign(c1,c2,tree);
+				printf("\npre order\n");
+				PreOrder(tree);
+				printf("\nmid order\n");
+				MidOrder(tree);
+				printf("\nbac order\n");
+				BackOrder(tree);//把后缀表达式存入数组 数组中一共num个字符
+				
+				n = 0;
+				Load(tree,brr);
+				sum = Value(brr,S,tree,num);
+				printf("\n\t\t\t请继续输入，输入@或6退出\n");
+				break;
+			case '4':
+				sum1 = Value(arr,S,tree,num);
+				printf("\n\t\t\t请继续输入，输入@或6退出\n");
+				
+				break;
+			case '5'://合并多项式
+				Tree tree2 = CreateTree();
+				printf("\t\t\t请输入前缀表达式2:\n\n");
+				num = ReadExpr(tree2);//num是操作符数量
+				printf("\n\n\t操作符数量(2) : %d \n\n",num); 
+				printf("\n(2)pre order\n");
+				PreOrder(tree2);
+				printf("\n(2)mid order\n");
+				MidOrder(tree2);
+				printf("\n(2)bac order\n");
+				BackOrder(tree2);
+				
+				n=0;
+				Load(tree2,brr);//导入操作符到数组
+				//printf("!!!!!!!!!%c %c!!!!!!!!!!!\n",brr[0],brr[1]);
+				Stack S2 = CreateStack(MAXN);
+				sum2 = Value(brr,S2,tree2,num);
+				
+				
+				printf("\n\t请输入连接两棵树的操作符 p\n\n");
+				char p;
+				scanf("%c",&p);
+				Node node = (Node)malloc(sizeof(treenode));
+				Tree treep = node;
+				treep->left = tree;
+				treep->right = tree2;
+				treep->data = p;
+				
+				n=0;
+				Load(treep,crr);
+				//printf("!!!!!!!!!%c %c!!!!!!!!!!!\n",crr[0],crr[1]);
+				printf("\n(3)pre order\n");
+				PreOrder(treep);
+				printf("\n(3)mid order\n");
+				MidOrder(treep);
+				printf("\n(3)bac order\n");
+				BackOrder(treep);//把后缀表达式存入数组 数组中一共num个字符
+				//Stack S3 = CreateStack(MAXN);
+				//Value(crr,S3,treep,num);
+				if(p == '+')
+				{
+					printf("\n value = %d\n\n",sum1+sum2);
+				}
+				else if(p ==  '-')
+				{
+					printf("\n value = %d\n\n",sum1-sum2);
+				}else if(p == '*')
+				{
+					printf("\n value = %d\n\n",sum1*sum2);
+				}else if(p == '/')
+				{
+					printf("\n value = %d\n\n",sum1/sum2);
+				}else if(p == '^')
+				{
+					sum = 1;
+					for(int i=1;i<=sum2;i++)
+					{
+						sum *= sum1;
+					}
+				}else
+				{
+					printf("\n\n p为无效操作符\n");
+				}
+				
+				printf("\n\t\t\t请继续输入，输入@或6退出\n");
+				 
+		}
+	} 
+	/*
+	printf("头节点已插入\n"); 
+	num = ReadExpr(tree);//num是操作符数量
+	printf("\n\n操作符数量 : %d \n\n",num); 
+	
+	
+	printf("\npreorder\n");
+	PreOrder(tree);
+	
+	
+	printf("\nbackorder\n");
+	BackOrder(tree,arr);//把后缀表达式存入数组 数组中一共num个字符
+
+	
+	printf("\nWriteExpr\n");
+	WriteExpr(tree);
+	
+	//value部分
+	printf("\n\n请输入 待替换的字符 和 新字符\n");
+	scanf("%c %c",&c1,&c2);
+	Assign(c1,c2,tree); 
+	
+	printf("\nnew WriteExpr\n");
+	WriteExpr(tree);
+	
+ 
+	Value(arr,S,tree,num);//求值函数 num是操作符数量 
+	*/
+	return 0;
+}
+
+Tree CreateTree()
+{
+	Tree tree;
+	Node node = (Node)malloc(sizeof(treenode));
+	tree = node;
+	tree->left = NULL;
+	tree->right = NULL;
+	return tree;
+}
+
+int issym(char c)//是操作符 
+{
+	if(c == '+' || c == '-' || c == '*' || c == '/' || c == '^')
+	{
+		return 1;
+	}else
+	{
+		return 0;
+	}
+}
+
+int isoper(char c)//是操作数 a~z 
+{
+	if(isdigit(c) || isalpha(c))
+	{
+		return 1;
+	}else{
+		return 0;
+	}
+ } 
+
+int ReadExpr(Tree tree)//把代码分割开，不要搞一个超大得函数 
+{
+	char c = getchar();
+	tree->data = c;
+	int num = 0;
+	while((c = getchar()) != '\n')
+	{
+			//printf("insert\n");
+			InsertNode(tree,c);
+			//printf("!!!!执行完一次插入\n\n");
+			num++;
+	}
+	return num; 
+}
+
+void InsertNode(Tree tree,char c)
+{
+	Node temp = tree;
+	if(isoper(c))//是操作数  
+	{
+		while(temp != NULL)
+		{
+			//printf("\n操作数\n\n");
+			if(temp->left == NULL)//如果指针是NULL就检查flag的话就会有error 
+			{
+				//printf("左边NULL\n");
+				Node node = (Node)malloc(sizeof(treenode));
+				temp->left = node;
+				temp = temp->left;
+				temp->data = c;
+				temp->flag = 1;
+				temp->left = NULL;
+				temp->right = NULL;
+				break;
+			}
+			else if(temp->left->flag == 1)//左子树是操作数或者左子树完全插满 情况 2 4 5 
+			{
+				if(temp->right == NULL)//情况2 
+				{
+					//printf("插入右边\n"); 
+					Node node = (Node)malloc(sizeof(treenode));
+					temp->right = node;
+					temp->flag = 1;
+					temp = temp->right;
+					temp->data = c;
+					temp->flag = 1;
+					temp->left = NULL;
+					temp->right = NULL;
+					break; 
+				}
+				else if(temp->right->flag == 1) //左右子树都插满了，回树根重新开始
+				{
+					temp->flag = 1;
+					temp = tree;
+					//printf("左右都已插满");
+					continue;
+				} 
+				else if(issym(temp->right->data))//情况4 右子树是操作符
+				{
+					//printf("往右深处走一层\n");
+					temp = temp->right;//往右深处走一层  不用考虑右边也插满的情况 
+			    }
+			}
+			else if(issym(temp->left->data))//情况3 左子树是还没插满得操作符
+			{
+				//printf("往左深处走一层\n");
+				temp = temp->left;
+			}
+     	}
+	}
+	else if(issym(c))//插入操作符 
+	{
+		while(temp != NULL)
+		{
+			//printf("\n操作符\n\n");
+			if(temp->left == NULL)//左边空 
+			{
+				//printf("左边空 插入\n");
+				Node node = (Node)malloc(sizeof(treenode));
+				temp->left = node;
+				temp = temp->left;//插入操作符不需要把flag置为1 
+				temp->data = c;
+				temp->left = NULL;
+				temp->right = NULL;
+				break;
+			}
+			else if(temp->left->flag == 1)//左边已经插满 
+			{
+				//printf("左边已经插满\n");
+				if(temp->right == NULL)//右边是空的 
+				{
+					//printf("插入右边\n");
+					Node node = (Node)malloc(sizeof(treenode)); 
+					temp->right = node;
+					temp = temp->right;
+					temp->data = c;
+					temp->left = NULL;
+					temp->right = NULL;
+					break; 
+			    }
+				else if(temp->right->flag == 1)
+			    {
+			    	temp->flag = 1;
+					temp = tree;
+					//printf("左右都插满");
+					continue;
+			    }
+				else if(issym(temp->right->data))//右边是操作符 
+				{
+					//printf("右边更深一层\n");
+			    	temp = temp->right;
+				 } 
+			}
+			else if(issym(temp->left->data))//左边是操作符 
+			{
+				//printf("往左深处走一层\n");
+				temp = temp->left;
+			}
+		} 
+	}
+}
+/*
+void WriteExpr(Tree tree)//输出中序表达式 
+{
+	
+}
+*/
+
+void PreOrder(Tree tree)
+{	
+	if(tree != NULL)
+	{
+		printf(" %c ",tree->data);
+		PreOrder(tree->left);
+		PreOrder(tree->right);
+	}
+}
+
+void MidOrder(Tree tree)
+{
+	if(tree != NULL)
+	{
+		if(isoper(tree->data))
+		{
+			MidOrder(tree->left);
+			printf(" %c ",tree->data);
+			MidOrder(tree->right);
+		}
+		else
+		{
+			printf("(");
+			MidOrder(tree->left);
+			printf(" %c ",tree->data);
+			MidOrder(tree->right);
+			printf(")");
+		}
+	}
+}
+
+void WriteExpr(Tree tree)
+{
+	MidOrder(tree);	
+}
+
+
+
+void BackOrder(Tree tree)
+{
+	if(tree != NULL)
+	{
+		BackOrder(tree->left);
+		BackOrder(tree->right);
+		printf(" %c ",tree->data);
+	}
+}
+
+void Load(Tree tree,char arr[])//导入arr中 
+{
+	if(tree != NULL)
+	{
+		Load(tree->left,arr);
+		Load(tree->right,arr);
+		arr[n++] = tree->data;
+	}
+}
+
+void Assign(char c,char v,Tree tree)
+{
+	if(tree != NULL)
+	{
+		if(tree->data == c)
+			tree->data = v;
+		Assign(c,v,tree->left);
+		Assign(c,v,tree->right);
+	}
+}
+
+Stack CreateStack(int num)
+{
+	Stack S;
+	S = (Stack)malloc(sizeof(struct stackrecord));
+	//S->arr = (Stack->arr)malloc(sizeof(char)*num);
+	S->topidx = -1;
+	return S;
+}
+
+void Push(int c,Stack S)
+{
+	S->arr[++S->topidx] = c;
+}
+
+void Pop(Stack S)
+{
+	if(IsEmpty(S))
+		printf("\n\n pop EROOR ERROR\n\n");
+	else
+		S->topidx--;
+}
+
+int Top(Stack S)
+{
+	if(!IsEmpty(S))
+		return S->arr[S->topidx];
+	printf("\n\n top EROOR ERROR\n\n");
+}
+
+int IsEmpty(Stack S)
+{
+	return S->topidx == -1;
+}
+
+int Value(char arr[],Stack S,Tree tree,int num)
+{
+	for(int i=0;i<num;i++)
+	{
+		if(isalpha(arr[i]))
+		{
+			printf("\n\n表达式无法求值，有字母存在！\n\n");
+			break;
+		}
+	}
+	for(int i=0;i<num;i++)
+	{
+		if(isdigit(arr[i]))//是数字压入栈
+		{
+			Push(arr[i]-48,S);//char 到 int的转换 
+			printf("\n top:%d\n",Top(S));
+		}
+		else if(issym(arr[i]))
+		{
+		 	int a,b;
+		 	int sum = 0;
+		 	a = Top(S);//a是第一个pop出来得，是b的上层 
+		 	Pop(S);
+		 	b = Top(S);
+		 	Pop(S);//pop两次 
+		    if(arr[i] == '+')
+		    {
+		    	sum = a+b;
+		    	Push(sum,S);
+			}
+			else if(arr[i] == '-')
+			{
+				sum = b-a;
+				Push(sum,S);
+			}
+			else if(arr[i] == '*')
+			{
+				sum = a*b;
+				Push(sum,S);
+			}
+			else if(arr[i] == '/')
+			{
+				sum = a/b;
+				Push(sum,S);
+			}
+			else if(arr[i] == '^')
+			{
+				sum = 1;
+				for(int j=1;j<=a;j++)
+					sum*=b;
+				Push(sum,S);
+			}
+			else
+			{
+				printf("\n\n 没有匹配到正确的符号 ！！ \n\n");
+				break;
+			}
+		} 
+	}
+	printf("\n\n value = %d\n\n",Top(S));
+	return Top(S);
+}
